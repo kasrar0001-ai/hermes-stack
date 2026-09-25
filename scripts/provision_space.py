@@ -7,17 +7,16 @@
 # ============================================================
 from __future__ import annotations
 
+import json
 import os
 import sys
 import time
 import traceback
 from pathlib import Path
+from typing import Any
 
-try:
-    from huggingface_hub import HfApi
-except ImportError:
-    print("::error:: huggingface_hub is not installed — pip install huggingface_hub")
-    sys.exit(1)
+import requests
+from huggingface_hub import HfApi
 
 # ---------------------------------------------------------------- config
 SPACE_SECRETS = [
@@ -44,6 +43,7 @@ REQUIRED = ["HF_TOKEN", "HF_USERNAME", "HF_SPACE_NAME"]
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 PRIVATE_SPACE = os.environ.get("PRIVATE_SPACE", "").lower() in ("1", "true", "yes")
 BUILD_TIMEOUT = int(os.environ.get("BUILD_TIMEOUT", "2700"))  # 45 min
+HF_API_URL = "https://huggingface.co/api"
 
 
 def log(msg: str) -> None:
@@ -78,12 +78,28 @@ def write_summary(text: str) -> None:
             f.write(text)
 
 
+def hf_api_request(token: str, path: str, method: str = "GET", **kwargs) -> Any:
+    """Make a request to the Hugging Face API."""
+    headers = {"Authorization": f"Bearer {token}"}
+    headers.update(kwargs.pop("headers", {}))
+    url = f"{HF_API_URL}{path}"
+    response = requests.request(method, url, headers=headers, **kwargs)
+    response.raise_for_status()
+    if response.text:
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            return response.text
+    return None
+
+
 def main() -> int:
     hf_user, space_name = check_env()
     repo_id = f"{hf_user}/{space_name}"
     backup_repo = env("BACKUP_REPO", f"{hf_user}/{space_name}-backup")
-
-    api = HfApi(token=env("HF_TOKEN"))
+    hf_token = env("HF_TOKEN")
+    
+    api = HfApi(token=hf_token)
 
     print("=" * 62)
     print(f" Target Space  : https://huggingface.co/spaces/{repo_id}")
@@ -124,22 +140,58 @@ def main() -> int:
 
     # ------------------------------------------------------ create repos
     print(f"[1/5] Creating (or reusing) Space {repo_id} (sdk=docker, cpu-basic, {'private' if PRIVATE_SPACE else 'public'})…")
-    url = api.create_repo(
-        repo_id=repo_id,
-        repo_type="space",
-        sdk="docker",
-        private=PRIVATE_SPACE,
-        exist_ok=True,
-        space_hardware="cpu-basic",
-    )
+    
+    # Create Space using direct API call
+    # This bypasses version compatibility issues with huggingface_hub's create_repo()
+    space_config = {
+        "sdk": "docker",
+        "hardware": "cpu-basic",
+        "private": PRIVATE_SPACE,
+    }
+    
+    try:
+        # Try creating the space with full configuration
+        result = hf_api_request(
+            hf_token,
+            f"/spaces/{repo_id}",
+            method="POST",
+            json=space_config,
+        )
+        url = result.get("space_id", f"https://huggingface.co/spaces/{repo_id}") if result else f"https://huggingface.co/spaces/{repo_id}"
+    except requests.HTTPError as e:
+        if e.response.status_code == 409:
+            # Space already exists, update its configuration
+            print(f"      -> Space exists, updating configuration...")
+            try:
+                hf_api_request(
+                    hf_token,
+                    f"/spaces/{repo_id}",
+                    method="PATCH",
+                    json={"private": PRIVATE_SPACE},
+                )
+            except Exception as update_err:
+                print(f"      -> Note: Could not update private setting: {update_err}")
+            url = f"https://huggingface.co/spaces/{repo_id}"
+        else:
+            raise
+    
     print(f"      -> {url}")
 
     print(f"[1/5] Creating (or reusing) private backup dataset {backup_repo}…")
     try:
-        api.create_repo(repo_id=backup_repo, repo_type="dataset", private=True, exist_ok=True)
-        print("      -> backup dataset ready")
-    except Exception as e:
-        print(f"::warning:: could not create backup dataset: {e}")
+        # Try creating dataset
+        hf_api_request(
+            hf_token,
+            f"/datasets/{backup_repo}",
+            method="POST",
+            json={"private": True},
+        )
+        print(f"      -> backup dataset ready")
+    except requests.HTTPError as e:
+        if e.response.status_code != 409:  # 409 = already exists
+            print(f"::warning:: could not create backup dataset: {e}")
+        else:
+            print(f"      -> backup dataset already exists")
 
     # ------------------------------------------------- secrets & vars
     print("[2/5] Injecting Space secrets…")
@@ -148,8 +200,17 @@ def main() -> int:
         if not val:
             print(f"      - {key}: (skipped — empty)")
             continue
-        api.add_space_secret(repo_id=repo_id, key=key, value=val)
-        print(f"      - {key}: ✓ set")
+        try:
+            hf_api_request(
+                hf_token,
+                f"/spaces/{repo_id}/secrets/{key}",
+                method="POST",
+                json={"value": val},
+            )
+            print(f"      - {key}: ✓ set")
+        except requests.HTTPError as e:
+            if e.response.status_code != 409:  # 409 = already exists
+                print(f"      - {key}: ✗ failed - {e}")
 
     print("[3/5] Injecting Space variables…")
     defaults = {
@@ -162,18 +223,58 @@ def main() -> int:
         if not val:
             print(f"      - {key}: (skipped — empty)")
             continue
-        api.add_space_variable(repo_id=repo_id, key=key, value=val)
-        print(f"      - {key}: {key in ('BACKUP_REPO',) and val or '✓ set'}")
+        try:
+            hf_api_request(
+                hf_token,
+                f"/spaces/{repo_id}/variables/{key}",
+                method="POST",
+                json={"value": val},
+            )
+            print(f"      - {key}: ✓ set")
+        except requests.HTTPError as e:
+            if e.response.status_code != 409:  # 409 = already exists
+                print(f"      - {key}: ✗ failed - {e}")
+
+    # Set BACKUP_REPO variable with actual value
+    if env("BACKUP_REPO"):
+        try:
+            hf_api_request(
+                hf_token,
+                f"/spaces/{repo_id}/variables/BACKUP_REPO",
+                method="POST",
+                json={"value": backup_repo},
+            )
+            print(f"      - BACKUP_REPO: {backup_repo}")
+        except requests.HTTPError as e:
+            if e.response.status_code != 409:
+                print(f"      - BACKUP_REPO: ✗ failed - {e}")
 
     # -------------------------------------------------------- upload
     print("[4/5] Uploading space/ files (Dockerfile, Caddyfile, hfkit)…")
     space_dir = Path(__file__).resolve().parent.parent / "space"
-    api.upload_folder(
-        folder_path=str(space_dir),
-        repo_id=repo_id,
-        repo_type="space",
-        commit_message="deploy: hermes-stack via GitHub Actions",
-    )
+    
+    # Use huggingface_hub for upload (upload_folder should work fine)
+    try:
+        api.upload_folder(
+            folder_path=str(space_dir),
+            repo_id=repo_id,
+            repo_type="space",
+            commit_message="deploy: hermes-stack via GitHub Actions",
+        )
+    except Exception as e:
+        print(f"::warning:: upload_folder failed, trying direct API: {e}")
+        # Fallback: upload files individually
+        for f in space_dir.rglob("*"):
+            if f.is_file():
+                with open(f, "rb") as file:
+                    api.upload_file(
+                        path_or_fileobj=file,
+                        path_in_repo=str(f.relative_to(space_dir)),
+                        repo_id=repo_id,
+                        repo_type="space",
+                        commit_message=f"deploy: {f.name}",
+                    )
+    
     print("      -> uploaded. Build started on Hugging Face…")
 
     # ---------------------------------------------------------- wait
@@ -182,10 +283,13 @@ def main() -> int:
     last_stage = ""
     space_url = f"https://huggingface.co/spaces/{repo_id}"
     app_url = f"https://{hf_user}-{space_name}.hf.space"
+    
     while time.time() - start < BUILD_TIMEOUT:
         try:
-            rt = api.get_space_runtime(repo_id=repo_id)
-            stage = getattr(rt, "stage", str(rt))
+            # Get space runtime status
+            rt_data = hf_api_request(hf_token, f"/spaces/{repo_id}/runtime")
+            stage = rt_data.get("stage", "UNKNOWN") if rt_data else "UNKNOWN"
+            
             if stage != last_stage:
                 elapsed = int(time.time() - start)
                 print(f"      [{elapsed:>4}s] stage: {stage}")
