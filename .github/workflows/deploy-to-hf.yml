@@ -14,7 +14,7 @@ on:
         required: false
         default: false
 
-permissions:
+permissions: 
   contents: read
 
 concurrency:
