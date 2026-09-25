@@ -125,29 +125,31 @@ def main() -> int:
     # ------------------------------------------------------ create repos
     print(f"[1/5] Creating (or reusing) Space {repo_id} (sdk=docker, cpu-basic, {'private' if PRIVATE_SPACE else 'public'})…")
     
-    # Create Space - try with SDK parameter first, fall back if not supported
+    # Create Space - try different SDK parameter names for compatibility
     url = None
+    
+    # First try the newer API with space_sdk parameter (huggingface_hub >= 0.30)
     try:
-        # Try with SDK and hardware parameters (newer huggingface_hub versions)
         url = api.create_repo(
             repo_id=repo_id,
             repo_type="space",
-            sdk="docker",
+            space_sdk="docker",
             private=PRIVATE_SPACE,
             exist_ok=True,
             space_hardware="cpu-basic",
         )
-    except TypeError as e:
-        if "unexpected keyword argument" in str(e):
-            # SDK parameter not supported - create without it
-            # The Dockerfile in space/ folder will trigger Docker build
+    except (TypeError, ValueError) as e:
+        error_msg = str(e).lower()
+        # If sdk/space_sdk parameter not supported or missing, fall back
+        if "unexpected keyword argument" in error_msg or "no space_sdk" in error_msg:
+            # Create without SDK - Docker build will work from space/ folder
             url = api.create_repo(
                 repo_id=repo_id,
                 repo_type="space",
                 private=PRIVATE_SPACE,
                 exist_ok=True,
             )
-            print(f"      -> Created (Docker build will run from space/ folder)")
+            print(f"      -> Created (Docker build from space/ folder)")
         else:
             raise
     except Exception as e:
