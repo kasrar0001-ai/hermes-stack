@@ -35,8 +35,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 📦 Install huggingface_hub
-        run: pip install --quiet "huggingface_hub>=0.30"
+      - name: 📦 Install dependencies
+        run: pip install --quiet "huggingface_hub>=0.30" "requests>=2.31"
 
       - name: 🛠️ Provision & deploy the Space
         env:
