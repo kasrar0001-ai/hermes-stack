@@ -1,0 +1,66 @@
+name: 💓 Keep Space Awake
+
+# Free HF Spaces fall asleep after ~48h without traffic. This workflow
+# pings the Space's /healthz endpoint every 10 minutes and, if the Space
+# is SLEEPING, restarts it via the HF API. Zero dependencies (curl only).
+#
+# Requirements: repo secrets HF_USERNAME + HF_SPACE_NAME (the web wizard
+# or the deploy workflow sets them). If they are missing, this job exits
+# quietly so scheduled runs never fail-noise your Actions tab.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 min = 144 polite pings/day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keep-alive-space
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Ping /healthz
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping the Space (and wake it if sleeping)
+        env:
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          set -u
+          if [ -z "${HF_USERNAME}" ] || [ -z "${HF_SPACE_NAME}" ]; then
+            echo "HF_USERNAME / HF_SPACE_NAME not set yet — nothing to keep alive."
+            echo "Run the deploy wizard first: https://godde3s.github.io/hermes-stack/deploy.html"
+            exit 0
+          fi
+          REPO_ID="${HF_USERNAME}/${HF_SPACE_NAME}"
+          APP_URL="https://${HF_USERNAME}-${HF_SPACE_NAME}.hf.space/healthz"
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+                  --max-time 30 -A "hermes-stack-keepalive/1.0" "$APP_URL" || echo "000")
+          echo "healthz -> HTTP ${CODE}"
+          if [ "${CODE}" = "200" ]; then
+            echo "✅ Space is up."
+            exit 0
+          fi
+          echo "Space did not answer — checking runtime stage via HF API…"
+          STAGE=$(curl -s --max-time 30 \
+                    -H "Authorization: Bearer ${HF_TOKEN}" \
+                    "https://huggingface.co/api/spaces/${REPO_ID}/runtime" \
+                  | python3 -c "import sys,json;print(json.load(sys.stdin).get('runtime',{}).get('stage','UNKNOWN'))" 2>/dev/null || echo "UNKNOWN")
+          echo "runtime stage: ${STAGE}"
+          if [ "${STAGE}" = "SLEEPING" ] || [ "${CODE}" = "000" ]; then
+            echo "💤 Sleeping/unreachable — requesting a restart…"
+            HTTP=$(curl -s -o /tmp/restart.json -w "%{http_code}" --max-time 30 \
+                    -X POST \
+                    -H "Authorization: Bearer ${HF_TOKEN}" \
+                    "https://huggingface.co/api/spaces/${REPO_ID}/restart" || echo "000")
+            echo "restart -> HTTP ${HTTP}"
+            [ "${HTTP}" = "200" ] || cat /tmp/restart.json 2>/dev/null || true
+          else
+            echo "Space is building/running-but-warming — no action taken."
+          fi

@@ -1,0 +1,58 @@
+:7860 {
+        encode zstd gzip
+
+        # ---- global hygiene headers (2026-style hardening) ----
+        header {
+                -Server
+                X-Content-Type-Options "nosniff"
+                Referrer-Policy "strict-origin-when-cross-origin"
+                X-Frame-Options "SAMEORIGIN"
+        }
+
+        # keep-alive / monitoring endpoint (GitHub Action pings this)
+        handle /healthz {
+                respond "ok" 200
+        }
+
+        # nice redirect: /hermes -> /hermes/
+        @hermesRoot path /hermes
+        redir @hermesRoot /hermes/ 301
+
+        # Hermes Agent web dashboard (auth: basic auth you set in Secrets)
+        handle /hermes/* {
+                uri strip_prefix /hermes
+                header_up X-Forwarded-Prefix /hermes
+                reverse_proxy 127.0.0.1:9119
+        }
+
+        # Hermes Agent as an OpenAI-compatible API  (web-to-api)
+        # external base_url: https://<SPACE_HOST>/hermes-api/v1
+        handle /hermes-api/* {
+                uri strip_prefix /hermes-api
+                header {
+                    Access-Control-Allow-Origin "*"
+                    Access-Control-Allow-Methods "GET, POST, OPTIONS"
+                    Access-Control-Allow-Headers "Authorization, Content-Type"
+                }
+                @hapiOpts method OPTIONS
+                respond @hapiOpts 204
+                reverse_proxy 127.0.0.1:8642
+        }
+
+        # 9Router OpenAI-compatible API with open CORS (browser tools / wizard)
+        handle /v1/* {
+                header {
+                    Access-Control-Allow-Origin "*"
+                    Access-Control-Allow-Methods "GET, POST, OPTIONS"
+                    Access-Control-Allow-Headers "Authorization, Content-Type"
+                }
+                @v1Opts method OPTIONS
+                respond @v1Opts 204
+                reverse_proxy 127.0.0.1:20128
+        }
+
+        # everything else -> 9Router (web dashboard)
+        handle {
+                reverse_proxy 127.0.0.1:20128
+        }
+}

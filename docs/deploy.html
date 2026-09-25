@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Deploy Wizard — Hermes Stack</title>
+<meta name="description" content="One-click deploy of Hermes Agent + 9Router + OmniRouter to a free Hugging Face Space — 100% in your browser.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#FAF7F1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l8 4.6v8.8L12 20l-8-4.6V6.6L12 2z' fill='none' stroke='%236B4A2F' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3.2' fill='%23F2B705'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/800.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5.2.5/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5.2.5/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.2.5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.2.5/700.css">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+/* ═══ wizard page specifics ═══ */
+.wrap{width:min(880px,94vw);margin-inline:auto;padding:34px 0 20px}
+.hero-mini{padding:26px 0 8px}
+.hero-mini h1{font-size:clamp(30px,5vw,44px);margin:14px 0 10px}
+.hero-mini h1 .hl{background:linear-gradient(120deg,var(--brown) 10%,var(--yellow) 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-mini p.sub{color:var(--muted);font-size:16.5px;max-width:640px;margin:0}
+/* step rail */
+.rail{display:flex;align-items:flex-start;justify-content:space-between;margin:34px 0 26px;position:relative}
+.rail::before{content:"";position:absolute;top:17px;left:11%;right:11%;height:2px;background:var(--line2)}
+.rail .fillbar{position:absolute;top:17px;left:11%;height:2px;background:linear-gradient(90deg,var(--brown),var(--yellow));width:0;transition:width .45s ease;z-index:0}
+.rnode{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;width:110px;cursor:default}
+.rdot{
+  width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  background:#fff;border:2px solid var(--line2);color:var(--faint);
+  font-family:var(--disp);font-weight:700;font-size:14.5px;transition:.3s;
+}
+.rlabel{font-size:12.5px;font-weight:600;color:var(--faint);text-align:center;transition:.3s}
+.rnode.act .rdot{border-color:var(--yellow);background:var(--yellow);color:var(--ink);box-shadow:0 0 0 5px rgba(242,183,5,.18)}
+.rnode.act .rlabel{color:var(--ink)}
+.rnode.done .rdot{border-color:var(--green);background:var(--green-soft);color:var(--green)}
+.rnode.done .rlabel{color:var(--green)}
+/* steps + cards */
+.step{display:none;animation:fadein .35s ease}
+.step.on{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow-sm);padding:30px clamp(18px,4vw,36px) 26px;
+}
+.card h2{font-size:23px;display:flex;align-items:center;gap:10px}
+.hint{color:var(--muted);font-size:14.5px;margin:0 0 18px}
+label{display:block;font-weight:600;font-size:14px;color:var(--ink2);margin:16px 0 7px}
+.inrow{display:flex;gap:10px}
+input[type=text],input[type=password],select{
+  flex:1;width:100%;padding:13px 15px;border:1.5px solid var(--line2);border-radius:13px;
+  background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:14px;outline:none;transition:.2s;
+}
+input:focus,select:focus{border-color:var(--yellow);box-shadow:var(--ring)}
+.sbtn{
+  padding:12px 20px;border-radius:13px;border:1.5px solid var(--ink);background:var(--ink);color:#FFF6DF;
+  font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;transition:.2s;font-family:var(--sans);
+}
+.sbtn:hover{background:#0F0A05}
+.sbtn.cy{background:var(--yellow);border-color:var(--yellow);color:var(--ink)}
+.sbtn.cy:hover{background:var(--yellow2)}
+.status{display:none;margin-top:13px;padding:12px 15px;border-radius:13px;font-size:14px;line-height:1.75}
+.status.ok{display:block;background:var(--green-soft);border:1px solid #BFE4CE;color:#1E6B44}
+.status.err{display:block;background:var(--red-soft);border:1px solid #EFC5C5;color:#9C2F2F}
+/* numbered req rows */
+.req{display:flex;gap:13px;align-items:flex-start;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:13px 16px;margin:11px 0}
+.req .n{
+  flex-shrink:0;width:24px;height:24px;border-radius:8px;background:var(--brown);color:#FFF3D2;
+  display:grid;place-items:center;font-family:var(--disp);font-weight:700;font-size:12.5px;margin-top:2px;
+}
+.req p{margin:0;font-size:14px;color:var(--ink2)}
+.tip{
+  display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--muted);
+  background:var(--yellow-soft);border:1px solid #F0DFAE;border-radius:13px;padding:12px 15px;margin-top:15px;line-height:1.8;
+}
+.secnote{
+  display:flex;gap:10px;align-items:flex-start;background:var(--green-soft);border:1px solid #BFE4CE;
+  border-radius:13px;padding:12px 15px;font-size:13px;color:#1E6B44;margin-top:16px;line-height:1.8;
+}
+.scopechip{display:inline-block;font-family:var(--mono);font-size:12px;padding:2px 9px;border-radius:7px;margin-right:5px}
+.scope-ok{background:var(--green-soft);color:#1E6B44;border:1px solid #BFE4CE}
+.scope-bad{background:var(--red-soft);color:#9C2F2F;border:1px solid #EFC5C5}
+/* telegram pick list + chips */
+.picklist{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.pick{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;
+  border:1.5px solid var(--line2);border-radius:13px;padding:11px 15px;cursor:pointer;transition:.18s;font-size:14px;
+}
+.pick:hover{border-color:var(--yellow);background:var(--yellow-soft)}
+.pick .pid{font-family:var(--mono);font-size:12.5px;color:var(--brown)}
+.tgchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{
+  display:inline-flex;align-items:center;gap:7px;background:var(--yellow-soft);border:1px solid #F0DFAE;
+  color:var(--ink);border-radius:999px;padding:5px 13px;font-family:var(--mono);font-size:13px;cursor:pointer;
+}
+.chip .x{color:var(--brown);font-weight:700}
+/* key generator grid */
+.genrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:13px;margin:6px 0 4px}
+.gk{background:var(--bg2);border:1px solid var(--line);border-radius:15px;padding:13px 14px}
+.gt{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13.5px;margin-bottom:8px}
+.gt .acts{display:flex;gap:5px}
+.gt .acts button{
+  background:#fff;border:1px solid var(--line2);border-radius:9px;width:29px;height:29px;cursor:pointer;
+  font-size:13.5px;display:grid;place-items:center;transition:.15s;
+}
+.gt .acts button:hover{border-color:var(--yellow);background:var(--yellow-soft)}
+.gk input{background:#fff}
+.adv{margin-top:16px;border:1px solid var(--line);border-radius:15px;overflow:hidden}
+.adv summary{
+  cursor:pointer;padding:14px 17px;font-weight:700;font-size:14px;color:var(--brown);
+  background:var(--bg2);list-style:none;display:flex;align-items:center;gap:9px;
+}
+.adv summary::-webkit-details-marker{display:none}
+.adv summary::before{content:"▸";transition:.2s;font-size:12px}
+.adv[open] summary::before{transform:rotate(90deg)}
+.adv .in{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;padding:17px}
+.adv .in label{margin-top:0}
+.adv select{font-family:var(--sans)}
+/* summary */
+.summ{border:1px solid var(--line);border-radius:15px;overflow:hidden;margin:4px 0 6px}
+.summ .r{display:flex;justify-content:space-between;gap:14px;padding:11px 16px;font-size:14px;border-bottom:1px solid var(--line);background:#fff}
+.summ .r:nth-child(odd){background:var(--bg2)}
+.summ .r:last-child{border-bottom:0}
+.summ .r span{color:var(--muted)}
+.summ .r b{color:var(--ink);font-family:var(--mono);font-size:12.5px;font-weight:600;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chk{display:flex;gap:11px;align-items:flex-start;font-size:13.5px;color:var(--muted);margin:16px 0;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--brown);margin-top:3px;flex-shrink:0}
+.bigbtn{
+  width:100%;padding:17px;border:0;border-radius:16px;background:linear-gradient(120deg,var(--ink) 30%,var(--brown) 100%);
+  color:#FFF6DF;font-family:var(--disp);font-size:17px;font-weight:700;letter-spacing:.01em;cursor:pointer;transition:.25s;
+  box-shadow:0 18px 44px -16px rgba(35,24,15,.5);
+}
+.bigbtn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 22px 50px -16px rgba(35,24,15,.55)}
+.bigbtn:disabled{opacity:.45;cursor:not-allowed}
+/* console */
+.console{display:none;margin-top:22px;background:#1D1409;border:1px solid #3D2E1F;border-radius:16px;overflow:hidden}
+.console.on{display:block}
+.chead{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid #3D2E1F;font-family:var(--mono);font-size:12px;color:#B99C77}
+.chead .dots{display:flex;gap:5px}
+.chead .dots i{width:10px;height:10px;border-radius:50%}
+.chead .dots i:nth-child(1){background:#E5695E}.chead .dots i:nth-child(2){background:var(--yellow)}.chead .dots i:nth-child(3){background:#57B87B}
+.cbody{
+  padding:14px 18px;font-family:var(--mono);font-size:12.3px;line-height:2;max-height:320px;overflow-y:auto;
+  white-space:pre-wrap;word-break:break-word;color:#E8D9C0;
+}
+.cbody .t{color:#7A6647}
+.cbody .ok{color:#7ED9A4}.cbody .err{color:#F09A9A}.cbody .st{color:var(--yellow2);font-weight:700}.cbody .in{color:#C9B591}.cbody .warn{color:#F2C14E}
+/* success */
+.success{display:none;text-align:center}
+.success.on{display:block}
+.success .big{font-size:52px;animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:26px 0;text-align:left}
+.lk{background:var(--bg2);border:1px solid var(--line);border-radius:15px;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+.lk .lt{font-size:13px;color:var(--muted)}
+.lk .lt b{color:var(--ink);font-size:13.5px;font-family:var(--disp)}
+.lk .lv{font-family:var(--mono);font-size:11.8px;color:var(--brown);word-break:break-all;line-height:1.7}
+.lk button{align-self:flex-start;background:#fff;border:1px solid var(--line2);color:var(--muted);border-radius:8px;font-size:11.5px;padding:4px 11px;cursor:pointer;font-family:var(--sans)}
+.lk button:hover{color:var(--ink);border-color:var(--yellow)}
+.nxt{text-align:left;background:var(--yellow-soft);border:1px solid #F0DFAE;border-radius:15px;padding:16px 20px;margin-top:8px}
+.nxt h4{color:var(--brown);font-size:14.5px;margin-bottom:10px}
+.nxt ol{padding-left:20px;color:var(--ink2);font-size:13.5px;display:flex;flex-direction:column;gap:6px;margin:0}
+/* nav buttons */
+.navrow{display:flex;justify-content:space-between;gap:12px;margin-top:26px}
+.nb{
+  padding:12px 26px;border-radius:14px;font-family:var(--sans);font-size:14.5px;font-weight:700;cursor:pointer;
+  transition:.25s;border:1.5px solid var(--line2);background:#fff;color:var(--muted);
+}
+.nb:hover{color:var(--ink);border-color:var(--brown2)}
+.nb.go{background:var(--ink);color:#FFF6DF;border-color:var(--ink)}
+.nb.go:hover{background:#0F0A05;box-shadow:0 12px 30px -12px rgba(35,24,15,.5)}
+.nb:disabled{opacity:.4;cursor:not-allowed}
+/* toast */
+#toast{
+  position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--ink);color:#FFF6DF;padding:12px 22px;border-radius:12px;font-size:13.5px;z-index:99;
+  transition:.35s;box-shadow:0 20px 60px rgba(0,0,0,.35);opacity:0;pointer-events:none;max-width:90vw;
+}
+#toast.on{transform:translateX(-50%);opacity:1}
+footer .wrap{padding-top:0}
+@media(max-width:640px){
+  .rail .rlabel{display:none}
+  .rnode{width:44px}
+  .rail::before,.rail .fillbar{left:14%;right:14%}
+  .inrow{flex-direction:column}
+  .summ .r b{max-width:180px}
+}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="container nav-in">
+  <a class="brand" href="index.html">
+    <svg class="mark" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4.6v8.8L12 20l-8-4.6V6.6L12 2z" stroke="#6B4A2F" stroke-width="2"/><circle cx="12" cy="12" r="3.2" fill="#F2B705"/></svg>
+    Hermes&nbsp;Stack <span style="font-family:var(--mono);font-size:11px;color:var(--faint);font-weight:400">/ wizard</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="https://github.com/Godde3s/hermes-stack" target="_blank" rel="noopener">GitHub</a>
+    <a class="nav-cta" href="#top" onclick="window.scrollTo({top:0,behavior:'smooth'});return false">Restart wizard</a>
+  </div>
+</div></nav>
+
+<div class="wrap" id="top">
+  <div class="hero-mini">
+    <span class="eyebrow">✦ 100% client-side — tokens never leave your browser</span>
+    <h1>Deploy <span class="hl">in one click</span></h1>
+    <p class="sub">This wizard creates your repo, encrypts and sets every secret, launches GitHub Actions and stays with you until your Space is green. Everything runs locally in your browser.</p>
+  </div>
+
+  <div class="rail" id="rail">
+    <div class="fillbar" id="fillbar"></div>
+    <div class="rnode" data-s="1"><div class="rdot">1</div><div class="rlabel">GitHub access</div></div>
+    <div class="rnode" data-s="2"><div class="rdot">2</div><div class="rlabel">Hugging Face</div></div>
+    <div class="rnode" data-s="3"><div class="rdot">3</div><div class="rlabel">Telegram bot</div></div>
+    <div class="rnode" data-s="4"><div class="rdot">4</div><div class="rlabel">Keys &amp; passwords</div></div>
+    <div class="rnode" data-s="5"><div class="rdot">5</div><div class="rlabel">Deploy</div></div>
+  </div>
+
+  <!-- ═══════════ STEP 1 — GitHub ═══════════ -->
+  <div class="step on" id="step1">
+    <div class="card">
+      <h2>🔑 GitHub access</h2>
+      <p class="hint">You need a Personal Access Token with <b>repo</b> and <b>workflow</b> scopes so the wizard can create your repo and set its secrets.</p>
+      <div class="req"><span class="n">1</span><p>Open <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=Hermes%20Stack%20Deployer" target="_blank" rel="noopener">this pre-filled link</a> — the token creation page opens with the right boxes ticked. Give it a name, pick an expiration, then click <b>Generate token</b>.</p></div>
+      <div class="req"><span class="n">2</span><p>Copy the token (<code>ghp_…</code>) and paste it below. It stays in your browser only.</p></div>
+      <label for="ghpat">GitHub Personal Access Token</label>
+      <div class="inrow">
+        <input type="password" id="ghpat" placeholder="ghp_…" spellcheck="false" autocomplete="off">
+        <button class="sbtn" id="ghval">Validate</button>
+      </div>
+      <div class="status" id="ghstatus"></div>
+      <div class="secnote">🔒 This wizard is a static file; tokens are sent only to <b>api.github.com</b>, <b>huggingface.co</b> and <b>api.telegram.org</b> — nowhere else. When the deploy finishes, revoke/rotate this token on GitHub (good hygiene).</div>
+      <div class="navrow"><span></span><button class="nb go" id="next1" disabled>Next step →</button></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ STEP 2 — Hugging Face ═══════════ -->
+  <div class="step" id="step2">
+    <div class="card">
+      <h2>🤗 Hugging Face token</h2>
+      <p class="hint">A token with the <b>write</b> role is needed to create the Space, upload files and set the Space secrets.</p>
+      <div class="req"><span class="n">1</span><p>In <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">token settings</a>, create a new token with the <b>Write</b> role (or a fine-grained token with Write access to Contents).</p></div>
+      <label for="hftok">Hugging Face Access Token</label>
+      <div class="inrow">
+        <input type="password" id="hftok" placeholder="hf_…" spellcheck="false" autocomplete="off">
+        <button class="sbtn" id="hfval">Validate</button>
+      </div>
+      <div class="status" id="hfstatus"></div>
+      <label for="spacename">Space name (English, with dashes)</label>
+      <div class="inrow"><input type="text" id="spacename" value="hermes-stack" spellcheck="false"></div>
+      <div class="status" id="spstatus"></div>
+      <div class="tip">Your app's final address will look like this: <b id="appurlprev" style="font-family:var(--mono);font-size:12px;color:var(--brown)">https://USER-hermes-stack.hf.space</b></div>
+      <div class="navrow"><button class="nb" id="prev2">← Previous</button><button class="nb go" id="next2">Next step →</button></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ STEP 3 — Telegram ═══════════ -->
+  <div class="step" id="step3">
+    <div class="card">
+      <h2>💬 Telegram bot</h2>
+      <p class="hint">In Telegram, open <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>, send <b>/newbot</b>, and paste the token (<code>123456:AA…</code>) here. You can also skip this step entirely.</p>
+      <label for="tgtok">Telegram Bot Token</label>
+      <div class="inrow">
+        <input type="password" id="tgtok" placeholder="123456789:AA…" spellcheck="false" autocomplete="off">
+        <button class="sbtn" id="tgval">Validate</button>
+      </div>
+      <div class="status" id="tgstatus"></div>
+      <label for="tgids">Allowed users (Telegram IDs, comma-separated)</label>
+      <div class="inrow">
+        <input type="text" id="tgids" placeholder="123456789, 987654321" spellcheck="false">
+        <button class="sbtn cy" id="tgfetch">Fetch from chats</button>
+      </div>
+      <div class="tip">For “Fetch from chats”: first send <b>/start</b> to your bot in Telegram (or any message), then click the button — the wizard lists recent senders; click one to allow them. This locks the bot so only you can use it.</div>
+      <div class="picklist" id="picklist"></div>
+      <div class="tgchips" id="tgchips"></div>
+      <div class="navrow"><button class="nb" id="prev3">← Previous</button><button class="nb go" id="next3">Next step →</button></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ STEP 4 — Keys ═══════════ -->
+  <div class="step" id="step4">
+    <div class="card">
+      <h2>🔐 Keys &amp; passwords</h2>
+      <p class="hint">Strong values are generated automatically — regenerate any of them or type your own. Everything is stored as an encrypted secret later.</p>
+      <div class="genrow">
+        <div class="gk"><div class="gt"><b>Agent dashboard username</b></div><input type="text" id="k_dashuser" value="admin"></div>
+        <div class="gk"><div class="gt"><b>Agent dashboard password</b><span class="acts"><button title="Regenerate" data-r="k_dashpass">🎲</button><button title="Copy" data-c="k_dashpass">📋</button></span></div><input type="text" id="k_dashpass"></div>
+        <div class="gk"><div class="gt"><b>Agent API key (web-to-api)</b><span class="acts"><button data-r="k_hermekey">🎲</button><button data-c="k_hermekey">📋</button></span></div><input type="text" id="k_hermekey"></div>
+        <div class="gk"><div class="gt"><b>Router API key</b><span class="acts"><button data-r="k_9rkey">🎲</button><button data-c="k_9rkey">📋</button></span></div><input type="text" id="k_9rkey"></div>
+        <div class="gk"><div class="gt"><b>Router first-login password</b><span class="acts"><button data-r="k_routerpass">🎲</button><button data-c="k_routerpass">📋</button></span></div><input type="text" id="k_routerpass"></div>
+        <div class="gk"><div class="gt"><b>Keyless-models router key</b><span class="acts"><button data-r="k_omnikey">🎲</button><button data-c="k_omnikey">📋</button></span></div><input type="text" id="k_omnikey"></div>
+        <div class="gk"><div class="gt"><b>Keyless-models admin password</b><span class="acts"><button data-r="k_omnipass">🎲</button><button data-c="k_omnipass">📋</button></span></div><input type="text" id="k_omnipass"></div>
+      </div>
+      <details class="adv">
+        <summary>⚙️ Advanced settings (optional)</summary>
+        <div class="in">
+          <div><label for="reponame">GitHub repo name</label><input type="text" id="reponame" value="hermes-stack" spellcheck="false"></div>
+          <div><label for="hermesmodel">Default agent model (model id in the router)</label><input type="text" id="hermesmodel" value="kiro-claude-sonnet-4.5" spellcheck="false"></div>
+          <div><label for="backuprepo">Backup dataset (empty = automatic)</label><input type="text" id="backuprepo" placeholder="{user}/{space}-backup" spellcheck="false"></div>
+          <div><label for="timezone">Timezone</label><select id="timezone"><option>Asia/Tehran</option><option>UTC</option><option>Asia/Dubai</option><option>Europe/Berlin</option></select></div>
+          <div><label for="omnienabled">Keyless models (OmniRouter)</label><select id="omnienabled"><option value="true">Enabled (recommended)</option><option value="false">Disabled</option></select></div>
+          <div><label for="webbackend">Agent web-search engine</label><select id="webbackend"><option value="tavily">tavily (no key needed)</option><option value="duckduckgo">duckduckgo</option></select></div>
+        </div>
+      </details>
+      <div class="tip">💡 You can change the default model later: edit the <b>HERMES_MODEL</b> variable in Space settings and restart. Exact model ids are listed in the router dashboard (Models tab).</div>
+      <div class="navrow"><button class="nb" id="prev4">← Previous</button><button class="nb go" id="next4">Next step →</button></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ STEP 5 — Deploy ═══════════ -->
+  <div class="step" id="step5">
+    <div class="card">
+      <h2>🚀 Ready to deploy</h2>
+      <p class="hint">Final checklist — if everything looks right, press the button and relax; the rest is automatic.</p>
+      <div class="summ" id="summary"></div>
+      <label class="chk"><input type="checkbox" id="privchk" checked><span>Make the Space <b>private</b> (recommended — only you can open it; backups are always private)</span></label>
+      <label class="chk"><input type="checkbox" id="agree"><span>I understand tokens are sent only to the official GitHub / Hugging Face / Telegram APIs, and I should revoke or rotate my GitHub PAT after the deploy.</span></label>
+      <button class="bigbtn" id="deploybtn" disabled>🚀 Start deployment</button>
+      <div class="console" id="console">
+        <div class="chead"><span class="dots"><i></i><i></i><i></i></span><span id="ctitle">deploy — hermes-stack</span><span style="margin-left:auto" id="celapsed"></span></div>
+        <div class="cbody" id="cbody"></div>
+      </div>
+      <div class="success" id="success">
+        <div class="big">🎉</div>
+        <h2 style="margin-top:8px">Deployment complete — <span style="background:linear-gradient(120deg,var(--brown),var(--yellow));-webkit-background-clip:text;background-clip:text;color:transparent">your Space is live!</span></h2>
+        <p class="hint" style="margin-top:6px">Everything is ready. Keep these links:</p>
+        <div class="lgrid" id="lgrid"></div>
+        <div class="nxt">
+          <h4>📌 Last 3 steps (2 minutes)</h4>
+          <ol id="nextsteps"></ol>
+        </div>
+        <div style="margin-top:22px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <a class="nb go" id="openapp" target="_blank" rel="noopener" href="#">Open your Space ↗</a>
+          <button class="nb" onclick="location.reload()">New wizard</button>
+        </div>
+      </div>
+      <div class="navrow" id="deploynav"><button class="nb" id="prev5">← Previous</button><span></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<footer><div class="container foot-in">
+  <span>Hermes Stack · 100% client-side · built by <a href="https://github.com/Godde3s" target="_blank" rel="noopener">Godde3s</a> · <a href="https://github.com/Godde3s/hermes-stack" target="_blank" rel="noopener">source</a></span>
+  <span class="foot-dots"><i></i><i></i><i></i></span>
+</div></footer>
+<script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl-fast.min.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   BLAKE2b — adapted from blakejs v1.2.1 (MIT, © Blakejs
+   contributors, github.com/dcposch/blakejs). Streaming API only.
+   Used to build the libsodium "sealed box" nonce for GitHub
+   Actions secret encryption (crypto_box_seal).
+   ══════════════════════════════════════════════════════════════ */
+function ADD64AA(v,a,b){const o0=v[a]+v[b];let o1=v[a+1]+v[b+1];if(o0>=0x100000000)o1++;v[a]=o0;v[a+1]=o1}
+function ADD64AC(v,a,b0,b1){let o0=v[a]+b0;if(b0<0)o0+=0x100000000;let o1=v[a+1]+b1;if(o0>=0x100000000)o1++;v[a]=o0;v[a+1]=o1}
+function B2B_GET32(arr,i){return arr[i]^(arr[i+1]<<8)^(arr[i+2]<<16)^(arr[i+3]<<24)}
+const _m=new Uint32Array(32);
+function B2B_G(v,a,b,c,d,ix,iy){const x0=_m[ix],x1=_m[ix+1],y0=_m[iy],y1=_m[iy+1];
+ ADD64AA(v,a,b);ADD64AC(v,a,x0,x1);
+ let xor0=v[d]^v[a],xor1=v[d+1]^v[a+1];v[d]=xor1;v[d+1]=xor0;
+ ADD64AA(v,c,d);
+ xor0=v[b]^v[c];xor1=v[b+1]^v[c+1];v[b]=(xor0>>>24)^(xor1<<8);v[b+1]=(xor1>>>24)^(xor0<<8);
+ ADD64AA(v,a,b);ADD64AC(v,a,y0,y1);
+ xor0=v[d]^v[a];xor1=v[d+1]^v[a+1];v[d]=(xor0>>>16)^(xor1<<16);v[d+1]=(xor1>>>16)^(xor0<<16);
+ ADD64AA(v,c,d);
+ xor0=v[b]^v[c];xor1=v[b+1]^v[c+1];v[b]=(xor1>>>31)^(xor0<<1);v[b+1]=(xor0>>>31)^(xor1<<1)}
+const BLAKE2B_IV32=new Uint32Array([0xf3bcc908,0x6a09e667,0x84caa73b,0xbb67ae85,0xfe94f82b,0x3c6ef372,0x5f1d36f1,0xa54ff53a,0xade682d1,0x510e527f,0x2b3e6c1f,0x9b05688c,0xfb41bd6b,0x1f83d9ab,0x137e2179,0x5be0cd19]);
+const SIGMA8=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3,11,8,12,0,5,2,15,13,10,14,3,6,7,1,9,4,7,9,3,1,13,12,11,14,2,6,5,10,4,0,15,8,9,0,5,7,2,4,10,15,14,1,11,12,6,8,3,13,2,12,6,10,0,11,8,3,4,13,7,5,15,14,1,9,12,5,1,15,14,13,4,10,0,7,6,3,9,2,8,11,13,11,7,14,12,1,3,9,5,0,15,4,8,6,2,10,6,15,14,9,11,3,0,8,12,2,13,7,1,4,10,5,10,2,8,4,7,6,1,5,15,11,9,14,3,12,13,0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,14,10,4,8,9,15,13,6,1,12,0,2,11,7,5,3];
+const SIGMA82=new Uint8Array(SIGMA8.map(x=>x*2));
+const _v=new Uint32Array(32);
+function blake2bCompress(ctx,last){let i=0;
+ for(i=0;i<16;i++){_v[i]=ctx.h[i];_v[i+16]=BLAKE2B_IV32[i]}
+ _v[24]=_v[24]^ctx.t;_v[25]=_v[25]^(ctx.t/0x100000000);
+ if(last){_v[28]=~_v[28];_v[29]=~_v[29]}
+ for(i=0;i<32;i++)_m[i]=B2B_GET32(ctx.b,4*i);
+ for(i=0;i<12;i++){
+  B2B_G(_v,0,8,16,24,SIGMA82[i*16+0],SIGMA82[i*16+1]);
+  B2B_G(_v,2,10,18,26,SIGMA82[i*16+2],SIGMA82[i*16+3]);
+  B2B_G(_v,4,12,20,28,SIGMA82[i*16+4],SIGMA82[i*16+5]);
+  B2B_G(_v,6,14,22,30,SIGMA82[i*16+6],SIGMA82[i*16+7]);
+  B2B_G(_v,0,10,20,30,SIGMA82[i*16+8],SIGMA82[i*16+9]);
+  B2B_G(_v,2,12,22,24,SIGMA82[i*16+10],SIGMA82[i*16+11]);
+  B2B_G(_v,4,14,16,26,SIGMA82[i*16+12],SIGMA82[i*16+13]);
+  B2B_G(_v,6,8,18,28,SIGMA82[i*16+14],SIGMA82[i*16+15])}
+ for(i=0;i<16;i++)ctx.h[i]=ctx.h[i]^_v[i]^_v[i+16]}
+function blake2bInit(outlen){if(outlen===0||outlen>64)throw new Error('Illegal output length');
+ const ctx={b:new Uint8Array(128),h:new Uint32Array(16),t:0,c:0,outlen:outlen};
+ const pb=new Uint8Array(64);pb[0]=outlen;pb[2]=1;pb[3]=1;
+ for(let i=0;i<16;i++)ctx.h[i]=BLAKE2B_IV32[i]^B2B_GET32(pb,i*4);
+ return ctx}
+function blake2bUpdate(ctx,input){for(let i=0;i<input.length;i++){if(ctx.c===128){ctx.t+=ctx.c;blake2bCompress(ctx,false);ctx.c=0}ctx.b[ctx.c++]=input[i]}}
+function blake2bFinal(ctx){ctx.t+=ctx.c;while(ctx.c<128)ctx.b[ctx.c++]=0;blake2bCompress(ctx,true);
+ const out=new Uint8Array(ctx.outlen);for(let i=0;i<ctx.outlen;i++)out[i]=ctx.h[i>>2]>>(8*(i&3));return out}
+
+/* ══════════════════════════════════════════════════════════════
+   Hermes Stack wizard — 100% client-side
+   ══════════════════════════════════════════════════════════════ */
+const $=id=>document.getElementById(id);
+const S={
+  pat:'', ghUser:'', hfToken:'', hfUser:'',
+  spaceName:'hermes-stack', repoName:'hermes-stack',
+  tgToken:'', tgBot:'', tgSkip:false, allowed:[],
+};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let toastT;
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2600)}
+function copyText(v){(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(()=>toast('📋 Copied')).catch(()=>{const i=document.createElement('textarea');i.value=v;document.body.appendChild(i);i.select();document.execCommand('copy');i.remove();toast('📋 Copied')})}
+function genStr(n){const cs='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';const b=new Uint8Array(n);crypto.getRandomValues(b);return Array.from(b,x=>cs[x%cs.length]).join('')}
+function templateRepo(){
+  const h=location.hostname||'';
+  if(h.endsWith('.github.io')&&h.split('.').length>2){
+    const owner=h.split('.')[0];
+    const repo=(location.pathname.split('/').filter(Boolean)[0])||'hermes-stack';
+    return owner+'/'+repo;
+  }
+  return 'Godde3s/hermes-stack';
+}
+function u8ToB64(u){let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
+function b64ToU8(s){const b=atob(s.replace(/\s/g,''));const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+/* libsodium sealed box using tweetnacl + blake2b(24, epk || pk) */
+function sealBox(pkB64,secret){
+  if(typeof nacl==='undefined')throw new Error('The crypto library (tweetnacl) failed to load from the CDN — check your internet connection and refresh the page.');
+  const pk=b64ToU8(pkB64);
+  const msg=new TextEncoder().encode(secret);
+  const ek=nacl.box.keyPair();
+  const h=blake2bInit(24);blake2bUpdate(h,ek.publicKey);blake2bUpdate(h,pk);
+  const nonce=blake2bFinal(h);
+  const boxed=nacl.box(msg,nonce,pk,ek.secretKey);
+  const out=new Uint8Array(32+boxed.length);
+  out.set(ek.publicKey,0);out.set(boxed,32);
+  return u8ToB64(out);
+}
+async function gh(path,opts={}){
+  const r=await fetch('https://api.github.com'+path,{
+    ...opts,
+    headers:{'Authorization':'token '+S.pat,'Accept':'application/vnd.github+json','Content-Type':'application/json',...(opts.headers||{})}
+  });
+  if(!r.ok){
+    let d={};try{d=await r.json()}catch(_){}
+    const en={401:'The GitHub token is invalid or expired.',403:'Access denied — the repo and workflow scopes are required (or you hit a rate limit).',404:'Repo or path not found — check the repo name.',422:'Request rejected: '+((d.message||'')+(d.errors?' '+d.errors.map(e=>e.message||'').join(', '):''))};
+    const e=new Error('GitHub '+r.status+': '+(en[r.status]||d.message||r.statusText));
+    e.status=r.status;throw e;
+  }
+  return r.status===204?null:r.json();
+}
+/* ───────────── step navigation ───────────── */
+let cur=1;
+function railSync(){
+  document.querySelectorAll('.rnode').forEach(n=>{
+    const s=+n.dataset.s;n.classList.toggle('act',s===cur);n.classList.toggle('done',s<cur);
+    if(s<cur)n.querySelector('.rdot').textContent='✓';else n.querySelector('.rdot').textContent=s;
+  });
+  const fill=document.querySelector('.rail .fillbar');
+  if(fill)fill.style.width=((cur-1)/(4))*100+'%';
+}
+function go(n){
+  cur=n;
+  document.querySelectorAll('.step').forEach(x=>x.classList.remove('on'));
+  $('step'+n).classList.add('on');
+  railSync();
+  if(n===4)initKeys();
+  if(n===5)buildSummary();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+/* ───────────── step 1: GitHub ───────────── */
+async function validateGH(){
+  const v=$('ghpat').value.trim();
+  if(!v){toast('Paste your token first');return}
+  S.pat=v;
+  const st=$('ghstatus');st.className='status';st.innerHTML='⏳ Validating token…';st.style.display='block';
+  try{
+    const r=await fetch('https://api.github.com/user',{headers:{'Authorization':'token '+v,'Accept':'application/vnd.github+json'}});
+    if(!r.ok){
+      if(r.status===401){st.className='status err';st.innerHTML='❌ Invalid or expired token.'}
+      else{st.className='status err';st.innerHTML='❌ Error '+r.status+' — please try again.'}
+      return;
+    }
+    const d=await r.json();
+    S.ghUser=d.login;
+    const scopes=(r.headers.get('x-oauth-scopes')||'').split(',').map(s=>s.trim());
+    const hasRepo=scopes.includes('repo'),hasWf=scopes.includes('workflow');
+    st.className='status ok';
+    st.innerHTML='✅ Hi <b>'+esc(d.login)+'</b>! The token is valid.<br>Scopes: '+
+      '<span class="scopechip '+(hasRepo?'scope-ok':'scope-bad')+'">'+(hasRepo?'✔ repo':'✘ repo')+'</span>'+
+      '<span class="scopechip '+(hasWf?'scope-ok':'scope-bad')+'">'+(hasWf?'✔ workflow':'✘ workflow')+'</span>'+
+      (hasRepo&&hasWf?'':'<br>⚠️ Missing scopes — use the pre-made token link at the top of this step.');
+    $('next1').disabled=!(hasRepo&&hasWf);
+    if(!(hasRepo&&hasWf))toast('The repo and workflow scopes are required');
+  }catch(e){st.className='status err';st.innerHTML='❌ Could not reach api.github.com: '+esc(e.message)}
+}
+/* ───────────── step 2: HF ───────────── */
+function spaceUrlPreview(){
+  const u=(S.hfUser||'USER').toLowerCase(),n=($('spacename').value.trim()||'hermes-stack').toLowerCase();
+  $('appurlprev').textContent='https://'+u+'-'+n+'.hf.space';
+}
+async function validateHF(){
+  const v=$('hftok').value.trim();
+  if(!v){toast('Paste your Hugging Face token first');return}
+  S.hfToken=v;
+  const st=$('hfstatus');st.className='status';st.style.display='block';st.innerHTML='⏳ Validating…';
+  try{
+    const r=await fetch('https://huggingface.co/api/whoami-v2',{headers:{'Authorization':'Bearer '+v}});
+    if(!r.ok){st.className='status err';st.innerHTML=r.status===401?'❌ Invalid token.':'❌ Error '+r.status;return}
+    const d=await r.json();
+    S.hfUser=d.name;
+    const role=d.auth&&d.auth.accessToken?d.auth.accessToken.role:'?';
+    const ok=role==='write'||role==='fineGrained';
+    st.className='status '+(ok?'ok':'err');
+    st.innerHTML=(ok?'✅ ':'❌ ')+'Account <b>'+esc(d.name)+'</b> — token role: <b>'+esc(role)+'</b>'+
+      (ok?'':'<br>⚠️ The <b>Write</b> role is required — change the role in your token settings.');
+    spaceUrlPreview();
+  }catch(e){st.className='status err';st.innerHTML='❌ Could not reach huggingface.co: '+esc(e.message)}
+}
+/* ───────────── step 3: Telegram ───────────── */
+async function validateTG(){
+  const v=$('tgtok').value.trim();
+  if(!v){toast('Paste the bot token first');return}
+  S.tgToken=v;S.tgSkip=false;
+  const st=$('tgstatus');st.className='status';st.style.display='block';st.innerHTML='⏳ Validating…';
+  try{
+    const r=await fetch('https://api.telegram.org/bot'+v+'/getMe');
+    const d=await r.json();
+    if(!d.ok){st.className='status err';st.innerHTML='❌ The bot token is not valid — copy it again from BotFather.';return}
+    S.tgBot=d.result.username;
+    st.className='status ok';
+    st.innerHTML='✅ Bot <b>@'+esc(d.result.username)+'</b> ('+esc(d.result.first_name)+') recognized.';
+  }catch(e){st.className='status err';st.innerHTML='❌ Could not reach api.telegram.org.'}
+}
+async function tgFetchUpdates(){
+  const st=$('tgstatus');
+  if(!S.tgToken){toast('Validate the bot token first');return}
+  st.className='status';st.style.display='block';st.innerHTML='⏳ Reading recent messages…';
+  try{
+    const r=await fetch('https://api.telegram.org/bot'+S.tgToken+'/getUpdates?limit=50');
+    const d=await r.json();
+    if(!d.ok){st.className='status err';st.innerHTML='❌ getUpdates failed.';return}
+    const seen=new Map();
+    (d.result||[]).forEach(u=>{
+      const c=u.message&&u.message.chat;if(!c)return;
+      if(!seen.has(c.id))seen.set(c.id,c);
+    });
+    const list=[...seen.values()];
+    if(!list.length){
+      st.className='status';st.style.display='block';
+      st.innerHTML='📭 No messages found — send <b>/start</b> to your bot in Telegram first, then try again.';
+      return;
+    }
+    st.className='status ok';st.innerHTML='👇 Click a user to add/remove them from the allowed list.';
+    $('picklist').innerHTML=list.map(c=>
+      '<div class="pick" data-id="'+c.id+'"><span>'+esc((c.first_name||'')+' '+(c.last_name||''))+'</span>'+
+      '<span style="color:var(--faint)">'+esc(c.username?'@'+c.username:c.type)+'</span>'+
+      '<span class="pid">'+c.id+'</span></div>').join('');
+    document.querySelectorAll('.pick').forEach(p=>p.addEventListener('click',()=>{
+      const id=p.dataset.id;
+      if(S.allowed.includes(id))S.allowed=S.allowed.filter(x=>x!==id);else S.allowed.push(id);
+      renderTgChips();syncTgInput();
+      p.style.borderColor=S.allowed.includes(id)?'var(--green)':'var(--line2)';
+    }));
+  }catch(e){st.className='status err';st.innerHTML='❌ getUpdates error.'}
+}
+function renderTgChips(){
+  $('tgchips').innerHTML=S.allowed.map(id=>'<span class="chip" data-id="'+esc(id)+'"><span class="x">✕</span>'+esc(id)+'</span>').join('');
+  document.querySelectorAll('#tgchips .chip').forEach(ch=>ch.addEventListener('click',()=>{
+    S.allowed=S.allowed.filter(x=>x!==ch.dataset.id);renderTgChips();syncTgInput();
+  }));
+}
+function syncTgInput(){$('tgids').value=S.allowed.join(', ')}
+/* ───────────── step 4: keys ───────────── */
+let keysInit=false;
+function initKeys(){
+  if(keysInit)return;keysInit=true;
+  $('k_dashpass').value=genStr(18);
+  $('k_hermekey').value='hs-'+genStr(28);
+  $('k_9rkey').value='9r-'+genStr(28);
+  $('k_routerpass').value=genStr(14);
+  $('k_omnikey').value='sk-omni-'+genStr(24);
+  $('k_omnipass').value=genStr(16);
+  document.querySelectorAll('[data-r]').forEach(b=>b.addEventListener('click',()=>{
+    const t=$(b.dataset.r);
+    const pre=(t.value.match(/^[a-z0-9]+-/i)&&!/^[0-9]/.test(t.value)&&t.id!=='k_dashpass'&&t.id!=='k_routerpass'&&t.id!=='k_omnipass')?t.value.split('-')[0]+'-':'';
+    t.value=pre+genStr(t.id==='k_routerpass'?14:18);
+  }));
+  document.querySelectorAll('[data-c]').forEach(b=>b.addEventListener('click',()=>copyText($(b.dataset.c).value)));
+}
+/* ───────────── step 5: summary + deploy ───────────── */
+function buildSummary(){
+  S.spaceName=$('spacename').value.trim()||'hermes-stack';
+  S.repoName=$('reponame').value.trim()||'hermes-stack';
+  const backupRepo=$('backuprepo').value.trim()||(S.hfUser+'/'+S.spaceName+'-backup');
+  const app='https://'+(S.hfUser+'-'+S.spaceName).toLowerCase().replace(/[^a-z0-9-]+/g,'-')+'.hf.space';
+  const rows=[
+    ['🤗 Space','https://huggingface.co/spaces/'+S.hfUser+'/'+S.spaceName],
+    ['🌐 App URL',app],
+    ['📦 GitHub repo','github.com/'+S.ghUser+'/'+S.repoName],
+    ['🤖 Telegram bot',S.tgSkip?'(skipped for now)':'@'+S.tgBot],
+    ['👥 Allowed users',S.allowed.length?S.allowed.join(', '):'—'],
+    ['🧠 Default model',$('hermesmodel').value.trim()],
+    ['💾 Hourly backups',backupRepo+' (private)'],
+  ];
+  $('summary').innerHTML=rows.map(r=>'<div class="r"><span>'+r[0]+'</span><b title="'+esc(r[1])+'">'+esc(r[1])+'</b></div>').join('');
+}
+function logC(txt,cls){
+  const b=$('cbody');
+  const t=new Date().toLocaleTimeString('en-GB');
+  const line=document.createElement('div');
+  line.innerHTML='<span class="t">['+t+']</span> <span class="'+(cls||'in')+'">'+txt+'</span>';
+  b.appendChild(line);b.scrollTop=b.scrollHeight;
+}
+function setDeployUI(on){
+  $('deploybtn').disabled=on;$('prev5').disabled=on;
+  $('agree').disabled=on;
+}
+async function deploy(){
+  setDeployUI(true);
+  $('console').classList.add('on');
+  $('cbody').innerHTML='';
+  $('success').classList.remove('on');
+  const started=Date.now();
+  const tick=setInterval(()=>{$('celapsed').textContent=Math.floor((Date.now()-started)/1000)+'s'},500);
+  const repoFull=S.ghUser+'/'+S.repoName;
+  const spaceId=S.hfUser+'/'+S.spaceName;
+  const appUrl='https://'+(S.hfUser+'-'+S.spaceName).toLowerCase().replace(/[^a-z0-9-]+/g,'-')+'.hf.space';
+  const priv=$('privchk').checked;
+  try{
+    logC('🚀 Deploying Hermes Stack — everything runs from your own browser','st');
+    /* 1 — repo from template */
+    const tpl=templateRepo();
+    logC('STEP 1/6 · Creating repo <'+repoFull+'> from template <'+tpl+'>','st');
+    try{
+      await gh('/repos/'+tpl+'/generate',{method:'POST',body:JSON.stringify({name:S.repoName,description:'🤖 Hermes Agent + 9Router + OmniRouter on a free Hugging Face Space — deployed via web wizard',private:false,include_all_branches:false})});
+      logC('repo created ✓','ok');
+    }catch(e){
+      if(e.status===422||/already/i.test(e.message)){
+        logC('repo already exists — reusing it','warn');
+        await gh('/repos/'+repoFull);
+      }else throw e;
+    }
+    /* 2 — secrets */
+    logC('STEP 2/6 · Fetching the secret-encryption public key','st');
+    const pk=await gh('/repos/'+repoFull+'/actions/secrets/public-key');
+    const backupRepo=$('backuprepo').value.trim()||(S.hfUser+'/'+S.spaceName+'-backup');
+    const vals={
+      HF_TOKEN:S.hfToken, HF_USERNAME:S.hfUser, HF_SPACE_NAME:S.spaceName,
+      TELEGRAM_BOT_TOKEN:S.tgSkip?'':S.tgToken,
+      TELEGRAM_ALLOWED_USERS:S.allowed.join(', '),
+      DASHBOARD_USERNAME:$('k_dashuser').value.trim()||'admin',
+      DASHBOARD_PASSWORD:$('k_dashpass').value.trim(),
+      HERMES_API_KEY:$('k_hermekey').value.trim(),
+      NINEROUTER_API_KEY:$('k_9rkey').value.trim(),
+      ROUTER_INITIAL_PASSWORD:$('k_routerpass').value.trim(),
+      OMNI_ROUTER_KEY:$('k_omnikey').value.trim(),
+      OMNI_ADMIN_PASSWORD:$('k_omnipass').value.trim(),
+      BACKUP_REPO:backupRepo,
+      HERMES_MODEL:$('hermesmodel').value.trim(),
+      HERMES_TIMEZONE:$('timezone').value,
+      OMNI_ENABLED:$('omnienabled').value,
+      HERMES_WEB_BACKEND:$('webbackend').value,
+    };
+    const names=Object.keys(vals).filter(k=>vals[k]);
+    logC('STEP 3/6 · Encrypting and setting '+names.length+' secrets (libsodium sealed-box)','st');
+    for(const k of names){
+      await gh('/repos/'+repoFull+'/actions/secrets/'+k,{method:'PUT',body:JSON.stringify({encrypted_value:sealBox(pk.key,vals[k]),key_id:pk.key_id})});
+      logC('secret '+k+' ✓','ok');
+    }
+    /* 3 — dispatch workflow */
+    logC('STEP 4/6 · Launching GitHub Actions (deploy-to-hf.yml)','st');
+    await gh('/repos/'+repoFull+'/actions/workflows/deploy-to-hf.yml/dispatches',{method:'POST',body:JSON.stringify({ref:'main',inputs:{dry_run:'false',private_space:priv?'true':'false'}})});
+    logC('workflow dispatched ✓','ok');
+    logC('👀 https://github.com/'+repoFull+'/actions','in');
+    /* 4 — wait for the run */
+    logC('STEP 5/6 · Waiting for the workflow to finish (usually 2–4 min)','st');
+    let runId=null,runOk=false,runFound=false;
+    for(let i=0;i<160;i++){
+      const d=await gh('/repos/'+repoFull+'/actions/runs?per_page=6');
+      const run=(d.workflow_runs||[]).filter(r=>r.event==='workflow_dispatch'&&r.head_branch==='main')
+        .sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))[0];
+      if(run){
+        runFound=true;runId=run.id;
+        if(run.status==='completed'){
+          if(run.conclusion==='success'){logC('workflow finished: success ✓ ('+Math.floor((Date.now()-started)/1000)+'s)','ok');runOk=true;break}
+          throw new Error('The workflow finished with "'+run.conclusion+'" — logs: https://github.com/'+repoFull+'/actions/runs/'+run.id);
+        }
+        if(i%2===0)logC('workflow: '+run.status+'…','in');
+      }else if(!runFound&&i>4){logC('waiting for the run to appear…','in')}
+      await sleep(15000);
+    }
+    if(!runOk)throw new Error('Timed out waiting for the workflow — check it manually: https://github.com/'+repoFull+'/actions');
+    /* 5 — wait for the Space to be RUNNING */
+    logC('STEP 6/6 · Waiting for the Space build (first build usually takes 10–25 min)','st');
+    const STAGE={NO_APP_FILE:'files are still uploading…',BUILDING:'🛠 building (pulling large base images…)',APP_STARTING:'⚡ starting services…',RUNNING:'🟢 RUNNING',PAUSED:'⏸ paused',PAUSING:'⏸ pausing',BUILD_ERROR:'❌ build error',RUN_ERROR:'❌ runtime error',CONFIG_ERROR:'❌ config error',DELETING:'🗑 deleting'};
+    let last='',ok=false;
+    for(let i=0;i<110;i++){
+      const r=await fetch('https://huggingface.co/api/spaces/'+spaceId+'/runtime',{headers:{'Authorization':'Bearer '+S.hfToken}});
+      if(!r.ok){logC('runtime poll: HTTP '+r.status+' — retrying','warn');await sleep(30000);continue}
+      const j=await r.json();
+      const st=j.stage||'?';
+      if(st!==last){
+        last=st;
+        logC('space: '+st+' — '+(STAGE[st]||''),'in');
+        if(st==='RUNNING'){ok=true;break}
+        if(/ERROR/.test(st))throw new Error('The Space entered state '+st+' — logs: https://huggingface.co/spaces/'+spaceId+'/logs/build');
+      }
+      await sleep(30000);
+    }
+    if(!ok)throw new Error('The build is taking long — it may still be running; check here: https://huggingface.co/spaces/'+spaceId);
+    /* 6 — success */
+    clearInterval(tick);
+    logC('🎉 Everything is ready!','ok');
+    const links=[
+      ['🏠 Space page','https://huggingface.co/spaces/'+spaceId],
+      ['🌐 Router dashboard (root)',appUrl+'/'],
+      ['🧠 Agent dashboard',appUrl+'/hermes/'],
+      ['🔌 Agent API (OpenAI-compatible)',appUrl+'/hermes-api/v1'],
+      ['💾 Backup dataset','https://huggingface.co/datasets/'+backupRepo],
+    ];
+    $('lgrid').innerHTML=links.map(l=>'<div class="lk"><div class="lt"><b>'+l[0]+'</b></div><div class="lv">'+esc(l[1])+'</div><button data-u="'+esc(l[1])+'">Copy link</button></div>').join('');
+    document.querySelectorAll('#lgrid button').forEach(b=>b.addEventListener('click',()=>copyText(b.dataset.u)));
+    $('openapp').href=appUrl+'/';
+    $('nextsteps').innerHTML=[
+      'In Telegram, send <b>/start</b> to <b>@'+esc(S.tgBot||'your bot')+'</b> — the agent should reply.',
+      'Log into the <b>router dashboard</b> with the first-login password (secret <b>ROUTER_INITIAL_PASSWORD</b>), connect your free accounts, and double-check <b>HERMES_MODEL</b> against the Models tab.',
+      'Keep-alive is already running: the <b>Keep Space Awake</b> GitHub Action pings <code>/healthz</code> every 10 minutes — no external cron service needed.',
+      'Revoke or rotate your GitHub PAT — its job is done. 🔒',
+    ].map(x=>'<li>'+x+'</li>').join('');
+    $('deploynav').style.display='none';
+    $('success').classList.add('on');
+    confetti();
+  }catch(e){
+    clearInterval(tick);
+    logC('❌ '+esc(e.message),'err');
+    logC('Most issues are fixed by correcting the tokens and pressing the button again — your previous steps are preserved.','warn');
+    setDeployUI(false);
+    $('deploybtn').textContent='🔁 Try again';
+  }
+}
+/* confetti — tiny, dependency-free */
+function confetti(){
+  const c=document.createElement('canvas');
+  c.style.cssText='position:fixed;inset:0;z-index:98;pointer-events:none';
+  document.body.appendChild(c);
+  const x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
+  const cols=['#F2B705','#6B4A2F','#FFD34D','#8B6B4F','#2F9E63'];
+  const ps=Array.from({length:150},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.5,r:4+Math.random()*5,cy:cols[Math.random()*cols.length|0],vy:2+Math.random()*3.4,vx:-1.5+Math.random()*3,a:Math.random()*Math.PI}));
+  let f=0;
+  (function anim(){
+    x.clearRect(0,0,c.width,c.height);f++;
+    ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.a+=.08;
+      x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.cy;x.fillRect(-p.r/2,-p.r/2,p.r,p.r*.6);x.restore()});
+    if(f<300)requestAnimationFrame(anim);else c.remove();
+  })();
+}
+/* ───────────── wiring ───────────── */
+$('ghval').addEventListener('click',validateGH);
+$('ghpat').addEventListener('keydown',e=>{if(e.key==='Enter')validateGH()});
+$('next1').addEventListener('click',()=>go(2));
+$('prev2').addEventListener('click',()=>go(1));
+$('hfval').addEventListener('click',validateHF);
+$('hftok').addEventListener('keydown',e=>{if(e.key==='Enter')validateHF()});
+$('spacename').addEventListener('input',()=>{spaceUrlPreview();
+  const v=$('spacename').value;
+  if(!/^[a-zA-Z0-9-_]*$/.test(v)){toast('Only English letters, digits, - and _');$('spacename').value=v.replace(/[^a-zA-Z0-9-_]/g,'')}
+});
+$('next2').addEventListener('click',()=>{
+  if(!S.hfUser){toast('Validate your Hugging Face token first');return}
+  if($('spacename').value.trim().length<2){toast('The Space name is too short');return}
+  go(3);
+});
+$('prev3').addEventListener('click',()=>go(2));
+$('tgval').addEventListener('click',validateTG);
+$('tgtok').addEventListener('keydown',e=>{if(e.key==='Enter')validateTG()});
+$('tgfetch').addEventListener('click',tgFetchUpdates);
+$('next3').addEventListener('click',()=>{
+  if(!S.tgBot){
+    if(confirm('The bot token has not been validated yet.\n\nOK = continue without Telegram (you can add the secret manually later)\nCancel = go back and enter the token')){
+      S.tgSkip=true;go(4);
+    }
+    return;
+  }
+  go(4);
+});
+$('prev4').addEventListener('click',()=>go(3));
+$('next4').addEventListener('click',()=>{
+  const req=[['k_dashpass','Dashboard password'],['k_hermekey','Agent API key'],['k_9rkey','Router API key'],['k_routerpass','Router password']];
+  for(const [id,lbl] of req){if(!$(id).value.trim()){toast(lbl+' is empty');$(id).focus();return}}
+  go(5);
+});
+$('prev5').addEventListener('click',()=>go(4));
+$('agree').addEventListener('change',e=>{$('deploybtn').disabled=!e.target.checked});
+$('deploybtn').addEventListener('click',deploy);
+go(1);
+</script>
+</body>
+</html>

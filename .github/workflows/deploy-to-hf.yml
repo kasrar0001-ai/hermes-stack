@@ -1,0 +1,70 @@
+name: 🚀 Deploy to Hugging Face Space
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "🧪 Dry-run (validate only, no Hugging Face calls)"
+        type: boolean
+        required: false
+        default: false
+      private_space:
+        description: "🔒 Create the Space as PRIVATE (only you can open it)"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-hf-space
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Provision & deploy Space
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 📦 Install huggingface_hub
+        run: pip install --quiet "huggingface_hub>=0.30"
+
+      - name: 🛠️ Provision & deploy the Space
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          PRIVATE_SPACE: ${{ inputs.private_space }}
+          # --- HF connection (set by the web wizard or manually) ---
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_SPACE_NAME: ${{ secrets.HF_SPACE_NAME }}
+          # --- app configuration copied into Space secrets ---
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ALLOWED_USERS: ${{ secrets.TELEGRAM_ALLOWED_USERS }}
+          HERMES_API_KEY: ${{ secrets.HERMES_API_KEY }}
+          NINEROUTER_API_KEY: ${{ secrets.NINEROUTER_API_KEY }}
+          OMNI_ROUTER_KEY: ${{ secrets.OMNI_ROUTER_KEY }}
+          OMNI_ADMIN_PASSWORD: ${{ secrets.OMNI_ADMIN_PASSWORD }}
+          ROUTER_INITIAL_PASSWORD: ${{ secrets.ROUTER_INITIAL_PASSWORD }}
+          DASHBOARD_USERNAME: ${{ secrets.DASHBOARD_USERNAME }}
+          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+          BACKUP_REPO: ${{ secrets.BACKUP_REPO }}
+          HERMES_MODEL: ${{ secrets.HERMES_MODEL }}
+          HERMES_TIMEZONE: ${{ secrets.HERMES_TIMEZONE }}
+          OMNI_ENABLED: ${{ secrets.OMNI_ENABLED }}
+          HERMES_WEB_BACKEND: ${{ secrets.HERMES_WEB_BACKEND }}
+        run: python scripts/provision_space.py
+
+      - name: ✅ Done
+        if: always()
+        run: |
+          echo "Deployment step finished."
+          echo "After a successful run, open your Space from the Hugging Face website."

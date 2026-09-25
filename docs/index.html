@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hermes Stack — Your own AI server on a free Hugging Face Space</title>
+<meta name="description" content="One-click deploy of Hermes Agent + 9Router + OmniRouter to a free Hugging Face Space: web dashboard, OpenAI-compatible API, Telegram control, hourly backups and keep-alive.">
+<meta name="theme-color" content="#FAF7F1">
+<meta property="og:title" content="Hermes Stack — your own AI server, zero cost">
+<meta property="og:description" content="Hermes Agent + 9Router + OmniRouter on one free Hugging Face Space. Deploy in 5 minutes with the web wizard.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l8 4.6v8.8L12 20l-8-4.6V6.6L12 2z' fill='none' stroke='%236B4A2F' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3.2' fill='%23F2B705'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.2.5/800.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5.2.5/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5.2.5/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.2.5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.2.5/700.css">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+/* ═══ landing page specifics ═══ */
+section{padding:72px 0}
+/* hero */
+.hero{padding:76px 0 64px}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+.hero h1{font-size:clamp(38px,6vw,62px);margin:20px 0 18px;font-weight:700}
+.hero h1 .hl{background:linear-gradient(120deg,var(--brown) 15%,var(--yellow) 85%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .lead{font-size:18px;color:var(--muted);max-width:520px;margin:0 0 30px}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap}
+.hero-chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+.chipstat{
+  display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink2);
+  background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;box-shadow:var(--shadow-sm);
+}
+.chipstat i{width:8px;height:8px;border-radius:50%;background:var(--green)}
+/* terminal mock */
+.term{
+  background:#1D1409;border-radius:22px;border:1px solid #3D2E1F;box-shadow:var(--shadow);overflow:hidden;
+  transform:rotate(.6deg);
+}
+.term-head{display:flex;align-items:center;gap:7px;padding:13px 18px;border-bottom:1px solid #3D2E1F}
+.term-head i{width:11px;height:11px;border-radius:50%}
+.term-head i:nth-child(1){background:#E5695E}.term-head i:nth-child(2){background:var(--yellow)}.term-head i:nth-child(3){background:#57B87B}
+.term-head span{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:#B99C77}
+.term-body{padding:20px 22px 24px;font-family:var(--mono);font-size:12.8px;line-height:2.05;color:#E8D9C0}
+.term-body .c{color:#7A6647}
+.term-body .y{color:var(--yellow2)}
+.term-body .g{color:#7ED9A4}
+.term-body .u{color:#E8A24B;text-decoration:underline;text-underline-offset:3px}
+.term-body .route{color:#C9B591}
+/* logos strip */
+.strip{border-block:1px solid var(--line);background:#fff;padding:20px 0}
+.strip-in{display:flex;align-items:center;justify-content:center;gap:clamp(18px,4vw,54px);flex-wrap:wrap}
+.strip-item{display:flex;align-items:center;gap:9px;font-family:var(--disp);font-weight:600;font-size:14.5px;color:var(--faint)}
+.strip-item svg{width:20px;height:20px;opacity:.75}
+/* bento features */
+.sec-head{max-width:620px;margin-bottom:44px}
+.sec-head h2{font-size:clamp(28px,4vw,40px)}
+.sec-head p{color:var(--muted);font-size:16.5px;margin:0}
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.bcard{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:26px;
+  box-shadow:var(--shadow-sm);transition:transform .25s ease,box-shadow .25s ease;position:relative;overflow:hidden;
+}
+.bcard:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.bcard h3{font-size:17.5px;margin:14px 0 7px}
+.bcard p{color:var(--muted);font-size:14px;margin:0;line-height:1.7}
+.bcard .ico{
+  width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
+  background:var(--yellow-soft);border:1px solid #F0DFAE;font-size:21px;
+}
+.bcard.w3{grid-column:span 3}.bcard.w2{grid-column:span 2}
+.bcard.accent{background:linear-gradient(135deg,#241A10 0%,#3D2E1F 100%);border-color:#3D2E1F}
+.bcard.accent h3,.bcard.accent p{color:#FFF3D2}
+.bcard.accent .ico{background:rgba(242,183,5,.14);border-color:rgba(242,183,5,.3)}
+.bcard .tag{
+  position:absolute;top:18px;right:18px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  color:var(--yellow);background:rgba(242,183,5,.12);border:1px solid rgba(242,183,5,.3);
+  padding:3px 9px;border-radius:999px;text-transform:uppercase;
+}
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;counter-reset:st}
+.stepcard{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:30px 26px;
+  box-shadow:var(--shadow-sm);position:relative;
+}
+.stepcard .num{
+  font-family:var(--disp);font-weight:700;font-size:15px;width:38px;height:38px;border-radius:12px;
+  display:grid;place-items:center;background:var(--ink);color:var(--yellow2);margin-bottom:18px;
+}
+.stepcard h3{font-size:19px}
+.stepcard p{color:var(--muted);font-size:14.5px;margin:0 0 14px}
+.stepcard .mono{font-family:var(--mono);font-size:12.5px;color:var(--brown);background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;display:block;word-break:break-all}
+/* architecture */
+.arch{
+  background:#1D1409;border-radius:24px;border:1px solid #3D2E1F;box-shadow:var(--shadow);
+  padding:clamp(20px,4vw,44px);font-family:var(--mono);font-size:clamp(11px,1.7vw,13.5px);
+  color:#E8D9C0;line-height:2;overflow-x:auto;
+}
+.arch .y{color:var(--yellow2)}.arch .g{color:#7ED9A4}.arch .b{color:#E8A24B}.arch .c{color:#7A6647}
+.arch-title{font-family:var(--disp);color:#FFF3D2;font-size:16px;margin-bottom:14px;letter-spacing:.02em}
+/* compare */
+.cmp{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm)}
+.cmp th,.cmp td{padding:15px 20px;text-align:left;font-size:14.5px;border-bottom:1px solid var(--line)}
+.cmp tr:last-child td{border-bottom:0}
+.cmp th{font-family:var(--disp);font-size:13.5px;background:var(--bg2);color:var(--ink2)}
+.cmp td:first-child{font-weight:600;color:var(--ink2);width:34%}
+.cmp .good{color:var(--green);font-weight:600}
+.cmp .meh{color:var(--muted)}
+/* safety */
+.safe{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.safecard{background:#fff;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:16px;padding:20px 22px;box-shadow:var(--shadow-sm)}
+.safecard.warn{border-left-color:var(--yellow)}
+.safecard h3{font-size:15.5px;margin:0 0 6px}
+.safecard p{color:var(--muted);font-size:13.8px;margin:0;line-height:1.7}
+/* faq */
+.faq{max-width:760px}
+.faq details{background:#fff;border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.faq summary{cursor:pointer;list-style:none;padding:18px 22px;font-weight:600;font-size:15.5px;display:flex;justify-content:space-between;gap:14px;align-items:center}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-family:var(--disp);font-size:20px;color:var(--brown);transition:.2s;flex-shrink:0}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq .a{padding:0 22px 18px;color:var(--muted);font-size:14.5px;line-height:1.8}
+/* CTA band */
+.cta-band{
+  background:linear-gradient(135deg,#241A10 0%,#3D2E1F 60%,#4A3423 100%);
+  border-radius:26px;padding:clamp(36px,6vw,64px);text-align:center;box-shadow:var(--shadow);position:relative;overflow:hidden;
+}
+.cta-band::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(500px 200px at 80% 0%,rgba(242,183,5,.16),transparent 60%);
+}
+.cta-band h2{color:#FFF3D2;font-size:clamp(26px,4vw,38px);position:relative}
+.cta-band p{color:#C9B591;font-size:16px;max-width:520px;margin:0 auto 28px;position:relative}
+@media(max-width:920px){
+  .hero-grid{grid-template-columns:1fr;gap:38px}
+  .bento{grid-template-columns:1fr 1fr}
+  .bcard.w3,.bcard.w2{grid-column:span 3}
+  .steps{grid-template-columns:1fr}
+  .safe{grid-template-columns:1fr}
+  section{padding:54px 0}
+}
+@media(max-width:560px){
+  .bento{grid-template-columns:1fr}
+  .bcard.w3,.bcard.w2{grid-column:span 1}
+  .hero{padding:48px 0 40px}
+  .term{transform:none}
+}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="container nav-in">
+  <a class="brand" href="index.html">
+    <svg class="mark" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4.6v8.8L12 20l-8-4.6V6.6L12 2z" stroke="#6B4A2F" stroke-width="2"/><circle cx="12" cy="12" r="3.2" fill="#F2B705"/></svg>
+    Hermes&nbsp;Stack
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#faq">FAQ</a>
+    <a href="https://github.com/Godde3s/hermes-stack" target="_blank" rel="noopener">GitHub</a>
+    <a class="nav-cta" href="deploy.html">Deploy now</a>
+  </div>
+</div></nav>
+
+<header class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="eyebrow">✦ Free forever · Hugging Face Spaces</span>
+      <h1>Your own <span class="hl">AI server</span>. One free Space.</h1>
+      <p class="lead">Hermes Agent + 9Router + OmniRouter running together on a free Hugging Face Space — with a web dashboard, an OpenAI-compatible API, Telegram control, hourly backups and automatic keep-alive. No credit card. No VPS.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-accent" href="deploy.html">🚀 Deploy in 5 minutes</a>
+        <a class="btn btn-ghost" href="https://github.com/Godde3s/hermes-stack" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+      <div class="hero-chips">
+        <span class="chipstat"><i></i>2 vCPU · 16 GB RAM</span>
+        <span class="chipstat">⏱ ~5 min setup</span>
+        <span class="chipstat">🔒 100% client-side wizard</span>
+      </div>
+    </div>
+    <div class="term">
+      <div class="term-head"><i></i><i></i><i></i><span>your-space.hf.space</span></div>
+      <div class="term-body">
+<span class="c">$ </span><span class="y">curl</span> https://user-ai-workspace.hf.space/healthz<br>
+<span class="g">ok</span> <span class="c">— keep-alive ping #144 today</span><br>
+<br>
+<span class="c"># everything lives on one URL:</span><br>
+<span class="route">/</span>              <span class="c">→ router dashboard</span><br>
+<span class="route">/v1</span>            <span class="c">→ OpenAI-compatible API</span><br>
+<span class="route">/hermes/</span>       <span class="c">→ agent web dashboard</span><br>
+<span class="route">/hermes-api/v1</span> <span class="c">→ agent as an API</span><br>
+<br>
+<span class="c">$ </span><span class="y">tg</span> "what's the news today?"<br>
+<span class="g">agent:</span> here's a summary from the web… ✓<br>
+<span class="c">$ </span><span class="y">backup</span> <span class="g">uploaded → private dataset</span> <span class="y">(hourly)</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="strip">
+  <div class="container strip-in">
+    <span style="font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;color:var(--faint)">POWERED BY</span>
+    <span class="strip-item"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#6B4A2F" stroke-width="2"/><path d="M3 12h18M12 3c3 3.5 3 14 0 18M12 3c-3 3.5-3 14 0 18" stroke="#6B4A2F" stroke-width="1.6"/></svg>Hermes Agent</span>
+    <span class="strip-item"><svg viewBox="0 0 24 24" fill="none"><path d="M4 17l6-10 4 7 2-3 4 6" stroke="#6B4A2F" stroke-width="2" stroke-linejoin="round"/></svg>9Router</span>
+    <span class="strip-item"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l8 4.6v8.8L12 21l-8-4.6V7.6L12 3z" stroke="#6B4A2F" stroke-width="2"/><circle cx="12" cy="12" r="2.6" fill="#F2B705"/></svg>OmniRouter</span>
+    <span class="strip-item"><svg viewBox="0 0 24 24" fill="none"><path d="M5 9a7 7 0 0114 0M3 13h18l-2 8H5l-2-8z" stroke="#6B4A2F" stroke-width="2" stroke-linejoin="round"/></svg>Caddy</span>
+  </div>
+</div>
+
+<section id="features">
+  <div class="container">
+    <div class="sec-head">
+      <span class="eyebrow">Features</span>
+      <h2 style="margin-top:16px">A whole server stack, in one card</h2>
+      <p>Everything the paid PaaS templates give you — rethought for a free Hugging Face Space.</p>
+    </div>
+    <div class="bento">
+      <div class="bcard w3 accent">
+        <span class="tag">The agent</span>
+        <div class="ico">🧠</div>
+        <h3>Hermes Agent, fully hosted</h3>
+        <p>Multi-turn chat, tools, memory and skills — with the official web dashboard at <b>/hermes/</b> behind basic auth, and the same agent exposed as an OpenAI-compatible API at <b>/hermes-api/v1</b>.</p>
+      </div>
+      <div class="bcard w3">
+        <span class="tag">The gateway</span>
+        <div class="ico">🔀</div>
+        <h3>Model router with a dashboard</h3>
+        <p>9Router gives you a real web UI to manage models and keys, served at the root URL. Its <b>/v1</b> endpoint speaks OpenAI — plug it into any client.</p>
+      </div>
+      <div class="bcard w2">
+        <div class="ico">✈️</div>
+        <h3>Telegram control</h3>
+        <p>Chat with your agent from anywhere. Polling mode is outbound-only, so it works behind any firewall. Locked to your user ID.</p>
+      </div>
+      <div class="bcard w2">
+        <span class="tag">Persistence</span>
+        <div class="ico">💾</div>
+        <h3>Hourly backups, auto-restore</h3>
+        <p>Space disks are ephemeral. Your state is tarballed every hour to a private dataset and restored on every boot — this is what makes it a real server.</p>
+      </div>
+      <div class="bcard w2">
+        <div class="ico">💓</div>
+        <h3>Built-in keep-alive</h3>
+        <p>A GitHub Action pings <b>/healthz</b> every 10 minutes and wakes the Space if it sleeps. No external cron service needed.</p>
+      </div>
+      <div class="bcard w3">
+        <div class="ico">🎁</div>
+        <h3>~78 keyless models</h3>
+        <p>The bundled OmniRouter serves free web models (Qwen, Gemini guest mode and more) with zero API keys — great as a fallback provider.</p>
+      </div>
+      <div class="bcard w3">
+        <div class="ico">🛠️</div>
+        <h3>Real-server customization</h3>
+        <p><b>EXTRA_PIP_PACKAGES</b>, <b>EXTRA_APT_PACKAGES</b>, <b>EXTRA_NPM_PACKAGES</b> and <b>STARTUP_SCRIPT</b> run at every boot — plus a persistent <b>hfkit-boot.sh</b> that survives restarts.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how" style="background:#fff;border-block:1px solid var(--line)">
+  <div class="container">
+    <div class="sec-head">
+      <span class="eyebrow">How it works</span>
+      <h2 style="margin-top:16px">Three steps. Five minutes.</h2>
+      <p>Railway-style simplicity, powered by GitHub Actions under the hood.</p>
+    </div>
+    <div class="steps">
+      <div class="stepcard">
+        <div class="num">1</div>
+        <h3>Open the wizard</h3>
+        <p>Paste three tokens — GitHub, Hugging Face (write), Telegram (optional). The wizard validates them live and generates strong passwords for you.</p>
+        <span class="mono">godde3s.github.io/hermes-stack/deploy.html</span>
+      </div>
+      <div class="stepcard">
+        <div class="num">2</div>
+        <h3>Press deploy</h3>
+        <p>The wizard creates your repo, encrypts every secret in your browser, and launches the deploy workflow. Then it watches the build until your Space is green.</p>
+        <span class="mono">Actions → Deploy to Hugging Face ✓</span>
+      </div>
+      <div class="stepcard">
+        <div class="num">3</div>
+        <h3>Use everything</h3>
+        <p>Open the dashboard, message the bot on Telegram, point any OpenAI client at your API. Keep-alive and backups are already running.</p>
+        <span class="mono">https://you-space.hf.space — live 🟢</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="architecture">
+  <div class="container">
+    <div class="sec-head">
+      <span class="eyebrow">Architecture</span>
+      <h2 style="margin-top:16px">What runs where</h2>
+      <p>One Space, one public port, four services behind a Caddy front proxy.</p>
+    </div>
+    <div class="arch">
+      <div class="arch-title">ONE FREE HF SPACE (Docker · port 7860)</div>
+<span class="y">Telegram</span> ──polling──► <span class="b">agent gateway</span> ──► tools · memory · skills<br>
+<span class="y">Browser</span> ──► <span class="g">Caddy :7860</span><br>
+&nbsp;&nbsp;<span class="b">/</span> ─────────────► router dashboard (Next.js)<br>
+&nbsp;&nbsp;<span class="b">/v1</span> ───────────► OpenAI-compatible router API<br>
+&nbsp;&nbsp;<span class="b">/hermes/</span> ──────► agent dashboard (basic auth)<br>
+&nbsp;&nbsp;<span class="b">/hermes-api/v1</span> ► agent as an API (bearer key)<br>
+&nbsp;&nbsp;<span class="b">/healthz</span> ──────► keep-alive endpoint (<span class="g">200 ok</span>)<br>
+<span class="y">GitHub Action</span> ──10 min──► /healthz (wake on sleep)<br>
+<span class="y">Backup loop</span> ──hourly──► <span class="g">private dataset</span> ──boot──► auto-restore
+    </div>
+  </div>
+</section>
+
+<section id="compare" style="background:#fff;border-block:1px solid var(--line)">
+  <div class="container">
+    <div class="sec-head">
+      <span class="eyebrow">Why this way</span>
+      <h2 style="margin-top:16px">Railway templates, without the bill</h2>
+      <p>Same developer experience as one-click PaaS templates — on infrastructure that stays free.</p>
+    </div>
+    <table class="cmp">
+      <tr><th></th><th>Railway free trial</th><th>Hermes Stack on HF</th></tr>
+      <tr><td>Cost after trial</td><td class="meh">~$1/month credit — not enough</td><td class="good">Free (CPU-basic)</td></tr>
+      <tr><td>Setup UX</td><td class="good">One-click template</td><td class="good">Web wizard + template repo</td></tr>
+      <tr><td>Persistence</td><td class="good">Volume included</td><td class="good">Hourly backup + auto-restore</td></tr>
+      <tr><td>Keep-alive</td><td class="good">Always-on (paid)</td><td class="good">Included GitHub Action</td></tr>
+      <tr><td>Keyless free models</td><td class="meh">Bring your own keys</td><td class="good">~78 built-in</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="safety">
+  <div class="container">
+    <div class="sec-head">
+      <span class="eyebrow">Staying safe</span>
+      <h2 style="margin-top:16px">Built to be a good tenant</h2>
+      <p>Free Spaces are shared infrastructure — this stack is engineered to be quiet, compliant and recoverable.</p>
+    </div>
+    <div class="safe">
+      <div class="safecard"><h3>✅ Moderate resources</h3><p>CPU-basic only, self-healing supervisor with exponential backoff. No crash loops, no mining, no abuse patterns that get Spaces flagged.</p></div>
+      <div class="safecard"><h3>✅ Private by default</h3><p>One checkbox makes your Space private. Backups always go to a private dataset. Keys live in encrypted secrets only.</p></div>
+      <div class="safecard"><h3>✅ Locked-down bot</h3><p>The Telegram gateway only answers your numeric user IDs — an open relay through HF infrastructure is the fastest way to get reported.</p></div>
+      <div class="safecard warn"><h3>⚠️ Honest expectations</h3><p>Running an agent is not against the ToS (public projects do it), but free Spaces aren't sold as always-on servers. Use a neutral name, don't share your URL, and keep your usage personal.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" style="background:#fff;border-block:1px solid var(--line)">
+  <div class="container">
+    <div class="sec-head">
+      <span class="eyebrow">FAQ</span>
+      <h2 style="margin-top:16px">Quick answers</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary>Is it really free?</summary>
+        <div class="a">Yes — the free CPU-basic Space (2 vCPU / 16 GB RAM) plus free GitHub Actions on public repos cover everything. No credit card required.</div>
+      </details>
+      <details>
+        <summary>What happens when the Space sleeps or restarts?</summary>
+        <div class="a">The built-in GitHub Action pings /healthz every 10 minutes to prevent sleeping. If a restart happens anyway, the hourly backup is restored automatically on boot, so memory, sessions and files survive.</div>
+      </details>
+      <details>
+        <summary>Do my tokens stay safe?</summary>
+        <div class="a">The wizard is a static page. Tokens go only to the official GitHub, Hugging Face and Telegram APIs, and secrets are encrypted in your browser before being stored. Still, rotate your GitHub PAT after deploying — that's good hygiene for any automation.</div>
+      </details>
+      <details>
+        <summary>Can I install my own packages?</summary>
+        <div class="a">Yes — set EXTRA_PIP_PACKAGES, EXTRA_APT_PACKAGES or EXTRA_NPM_PACKAGES in Space settings, or drop commands into the persistent hfkit-boot.sh file. They run at every boot.</div>
+      </details>
+      <details>
+        <summary>Which models can the agent use?</summary>
+        <div class="a">Whatever you connect in the router dashboard, plus ~78 keyless web models from the bundled OmniRouter (Qwen, Gemini guest mode, …) that work with zero API keys.</div>
+      </details>
+      <details>
+        <summary>Can I use this if I don't need Telegram?</summary>
+        <div class="a">Absolutely — skip the Telegram step in the wizard. The dashboards and APIs work on their own.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="cta-band">
+      <h2>Ready in five minutes?</h2>
+      <p>The wizard does the boring parts. You bring three tokens; it builds the server.</p>
+      <a class="btn btn-accent" href="deploy.html">🚀 Open the Deploy Wizard</a>
+    </div>
+  </div>
+</section>
+
+<footer><div class="container foot-in">
+  <span>Hermes Stack · MIT · built by <a href="https://github.com/Godde3s" target="_blank" rel="noopener">Godde3s</a></span>
+  <span><a href="deploy.html">Deploy</a> · <a href="https://github.com/Godde3s/hermes-stack" target="_blank" rel="noopener">GitHub</a> · <a href="https://github.com/Godde3s/hermes-stack#readme" target="_blank" rel="noopener">Docs</a></span>
+  <span class="foot-dots"><i></i><i></i><i></i></span>
+</div></footer>
+</body>
+</html>
