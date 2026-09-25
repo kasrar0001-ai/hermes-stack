@@ -318,7 +318,7 @@ def main() -> int:
                 print(f"::error:: Logs: {space_url}/logs/build")
                 write_summary(f"## ❌ Space build failed\n\nState: `{stage}`\n\n[Build logs]({space_url}/logs/build)")
                 return 1
-        except Exception as e:
+        except Exception as e: 
             print(f"      (runtime poll failed: {e} — retrying)")
         time.sleep(30)
 
